@@ -7,7 +7,9 @@ use App\Repository\OrganizationRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ApiResource(
@@ -19,6 +21,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 class Organization
 {
+    use TimestampableEntity;
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
@@ -29,29 +33,32 @@ class Organization
     /**
      * @ORM\Column(type="string", length=255)
      * @Groups({"organization:read", "organization:write", "activity:item:get"})
+     * @Assert\NotBlank
      */
     private ?string $name;
 
     /**
-     * @ORM\Column(type="string", length=255)
-     * @Groups({"organization:read", "organization:write"})
-     */
-    private ?string $legalEntityIdentifier;
-
-    /**
      * @ORM\OneToMany(targetEntity=User::class, mappedBy="organization", orphanRemoval=true)
      */
-    private ArrayCollection $members;
+    private Collection $members;
 
     /**
-     * @ORM\OneToMany(targetEntity=Service::class, mappedBy="organization", orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity=Service::class, mappedBy="provider")
      */
-    private ArrayCollection $services;
+    private Collection $makesOffer;
+
+    /**
+     * Legal entity identifier as defined in ISO 17442
+     * @ORM\Column(type="string", length=255)
+     * @Groups({"organization:read", "organization:write"})
+     * @Assert\NotBlank
+     */
+    private ?string $leiCode;
 
     public function __construct()
     {
         $this->members = new ArrayCollection();
-        $this->services = new ArrayCollection();
+        $this->makesOffer = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -67,18 +74,6 @@ class Organization
     public function setName(string $name): self
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    public function getLegalEntityIdentifier(): ?string
-    {
-        return $this->legalEntityIdentifier;
-    }
-
-    public function setLegalEntityIdentifier(string $legalEntityIdentifier): self
-    {
-        $this->legalEntityIdentifier = $legalEntityIdentifier;
 
         return $this;
     }
@@ -117,30 +112,42 @@ class Organization
     /**
      * @return Collection|Service[]
      */
-    public function getServices(): Collection
+    public function getMakesOffer(): Collection
     {
-        return $this->services;
+        return $this->makesOffer;
     }
 
-    public function addService(Service $service): self
+    public function addMakesOffer(Service $makesOffer): self
     {
-        if (!$this->services->contains($service)) {
-            $this->services[] = $service;
-            $service->setOrganization($this);
+        if (!$this->makesOffer->contains($makesOffer)) {
+            $this->makesOffer[] = $makesOffer;
+            $makesOffer->setProvider($this);
         }
 
         return $this;
     }
 
-    public function removeService(Service $service): self
+    public function removeMakesOffer(Service $makesOffer): self
     {
-        if ($this->services->contains($service)) {
-            $this->services->removeElement($service);
+        if ($this->makesOffer->contains($makesOffer)) {
+            $this->makesOffer->removeElement($makesOffer);
             // set the owning side to null (unless already changed)
-            if ($service->getOrganization() === $this) {
-                $service->setOrganization(null);
+            if ($makesOffer->getProvider() === $this) {
+                $makesOffer->setProvider(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getLeiCode(): ?string
+    {
+        return $this->leiCode;
+    }
+
+    public function setLeiCode(string $leiCode): self
+    {
+        $this->leiCode = $leiCode;
 
         return $this;
     }

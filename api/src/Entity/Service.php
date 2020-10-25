@@ -5,6 +5,8 @@ namespace App\Entity;
 
 use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\ServiceRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -48,10 +50,26 @@ class Service
     private ?string $description;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Organization::class, inversedBy="services")
+     * @ORM\OneToMany(targetEntity=Rating::class, mappedBy="subjectOf")
+     */
+    private $ratings;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Organization::class, inversedBy="makesOffer")
      * @ORM\JoinColumn(nullable=false)
      */
-    private ?Organization $organization;
+    private $provider;
+
+    /**
+     * @ORM\ManyToMany(targetEntity=Offer::class, mappedBy="itemsOffered")
+     */
+    private $offers;
+
+    public function __construct()
+    {
+        $this->ratings = new ArrayCollection();
+        $this->offers = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -82,14 +100,73 @@ class Service
         return $this;
     }
 
-    public function getOrganization(): ?Organization
+    /**
+     * @return Collection|Rating[]
+     */
+    public function getRatings(): Collection
     {
-        return $this->organization;
+        return $this->ratings;
     }
 
-    public function setOrganization(?Organization $organization): self
+    public function addRating(Rating $rating): self
     {
-        $this->organization = $organization;
+        if (!$this->ratings->contains($rating)) {
+            $this->ratings[] = $rating;
+            $rating->setSubjectOf($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRating(Rating $rating): self
+    {
+        if ($this->ratings->contains($rating)) {
+            $this->ratings->removeElement($rating);
+            // set the owning side to null (unless already changed)
+            if ($rating->getSubjectOf() === $this) {
+                $rating->setSubjectOf(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getProvider(): ?Organization
+    {
+        return $this->provider;
+    }
+
+    public function setProvider(?Organization $provider): self
+    {
+        $this->provider = $provider;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Offer[]
+     */
+    public function getOffers(): Collection
+    {
+        return $this->offers;
+    }
+
+    public function addOffer(Offer $offer): self
+    {
+        if (!$this->offers->contains($offer)) {
+            $this->offers[] = $offer;
+            $offer->addItemsOffered($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOffer(Offer $offer): self
+    {
+        if ($this->offers->contains($offer)) {
+            $this->offers->removeElement($offer);
+            $offer->removeItemsOffered($this);
+        }
 
         return $this;
     }
