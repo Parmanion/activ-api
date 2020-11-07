@@ -13,6 +13,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ApiResource(
+ *     collectionOperations={
+ *          "get",
+ *          "post"={"security"="is_granted('ROLE_ADMIN')"},
+ *     },
+ *     itemOperations={
+ *          "put"={"security"="is_granted('ROLE_USER')"},
+ *          "delete"={"security"="is_granted('ROLE_ADMIN')"}
+ *     },
  *     shortName="organizations",
  *     normalizationContext={"groups"={"organization:read"}, "swagger_definition_name"="read"},
  *     denormalizationContext={"groups"={"organization:write"}, "swagger_definition_name"="write"}
